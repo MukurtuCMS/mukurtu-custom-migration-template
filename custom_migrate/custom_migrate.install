@@ -1,0 +1,50 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for custom_migrate.
+ */
+
+use Drupal\custom_migrate\Hook\MigrationPluginsAlterHooks;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\user\Entity\Role;
+
+/**
+ * Implements hook_install().
+ */
+function custom_migrate_install(bool $is_syncing): void {
+  // A config import brings the role's permissions with it.
+  if ($is_syncing) {
+    return;
+  }
+
+  // Mukurtu Managers manage the terms in every vocabulary Mukurtu ships, so
+  // they manage these too.
+  $manager = Role::load('mukurtu_manager');
+  if (!$manager) {
+    return;
+  }
+  foreach (custom_migrate_vocabularies() as $vid) {
+    foreach (['create', 'delete', 'edit'] as $operation) {
+      $manager->grantPermission("$operation terms in $vid");
+    }
+  }
+  $manager->save();
+}
+
+/**
+ * Returns the vocabularies the custom Digital Heritage fields reference.
+ *
+ * @return string[]
+ *   Vocabulary IDs.
+ */
+function custom_migrate_vocabularies(): array {
+  $vids = [];
+  foreach (array_keys(MigrationPluginsAlterHooks::FIELD_MIGRATIONS) as $field_name) {
+    $field = FieldConfig::loadByName('node', 'digital_heritage', $field_name);
+    if ($field) {
+      $vids = array_merge($vids, array_values($field->getSetting('handler_settings')['target_bundles'] ?? []));
+    }
+  }
+  return array_values(array_unique($vids));
+}

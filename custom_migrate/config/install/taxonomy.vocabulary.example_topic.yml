@@ -1,0 +1,8 @@
+langcode: en
+status: true
+dependencies: {  }
+name: 'Example Topic'
+vid: example_topic
+description: 'Example vocabulary. Rename or replace it with your own.'
+weight: 0
+new_revision: false
